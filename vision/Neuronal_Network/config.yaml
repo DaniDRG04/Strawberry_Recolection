@@ -1,0 +1,9 @@
+path: /home/danieldrg/Documents/CNN/data # Directorio al dataset
+train: images/train # Directorio de las imágenes de entrenamiento
+val: images/val # Directorio de las imágenes de validación
+
+# Classes
+names:
+  0: ripe
+  1: unripe
+  2: peduncle
