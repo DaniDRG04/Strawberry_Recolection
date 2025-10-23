@@ -1,6 +1,11 @@
+# Author: Daniel De Regules Gamboa
+# Date: October 2025
+# Description: This script uses a RealSense camera to capture color and depth frames,
+# performs object detection using a YOLOv8 model, and estimates the 3D pose of detected strawberries
+# using the PnP algorithm. 
+
 import cv2 as cv
 from ultralytics import YOLO
-import yaml
 import numpy as np
 import pyrealsense2 as rs
 
@@ -23,7 +28,7 @@ color_intr = color_stream.get_intrinsics()
 depth_scale = profile.get_device().first_depth_sensor().get_depth_scale()
 
 # Load YOLOv8 model
-model = YOLO("C:\\Tec de MTY\\7mo Semestre\\Control\\Vision\\env\\CNN\\best.pt")
+model = YOLO("vision\\best.pt")
 min_area = 500
 max_area = 50000
 
