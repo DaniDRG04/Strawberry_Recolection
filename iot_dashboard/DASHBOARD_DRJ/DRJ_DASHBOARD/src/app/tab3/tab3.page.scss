@@ -1,0 +1,19 @@
+.filter-card {
+  border-left: 5px solid var(--ion-color-success);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.error-card {
+  border-left: 5px solid var(--ion-color-danger);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+  transition: transform 0.2s;
+}
+
+.error-card:hover {
+  transform: scale(1.02);
+}
+
+ion-card-title[color="danger"] {
+  font-weight: bold;
+  color: var(--ion-color-danger);
+}

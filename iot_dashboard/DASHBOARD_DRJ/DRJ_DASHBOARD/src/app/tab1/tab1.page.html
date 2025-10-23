@@ -1,0 +1,112 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>🌿 Smart Farm Dashboard</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  <ion-grid>
+    <ion-row class="ion-justify-content-center ion-margin-bottom">
+      <!-- Temperature Card -->
+      <ion-col size="6" size-md="3">
+        <ion-card class="sensor-card">
+          <div class="card-image-wrapper">
+            <img alt="Temperature sensor" src="assets/icon/Temp.png" />
+          </div>
+          <ion-card-header>
+            <ion-card-title>Temperature</ion-card-title>
+            <ion-card-subtitle>Current Reading</ion-card-subtitle>
+          </ion-card-header>
+          <ion-card-content>
+            <h2 class="value">{{ temperature }} °C</h2>
+            Last data point: {{ date }}
+          </ion-card-content>
+        </ion-card>
+      </ion-col>
+
+      <!-- Humidity Card -->
+      <ion-col size="6" size-md="3">
+        <ion-card class="sensor-card">
+          <div class="card-image-wrapper">
+            <img alt="Humidity sensor" src="assets/icon/hum.png" />
+          </div>
+          <ion-card-header>
+            <ion-card-title>Humidity</ion-card-title>
+            <ion-card-subtitle>Current Reading</ion-card-subtitle>
+          </ion-card-header>
+          <ion-card-content>
+            <h2 class="value">{{ humidity }} %</h2>
+            Last data point: {{ date }}
+          </ion-card-content>
+        </ion-card>
+      </ion-col>
+
+      <!-- Soil Moisture Card -->
+      <ion-col size="6" size-md="3">
+        <ion-card class="sensor-card">
+          <div class="card-image-wrapper">
+            <img alt="Soil moisture sensor" src="assets/icon/soil.png" />
+          </div>
+          <ion-card-header>
+            <ion-card-title>Soil Moisture</ion-card-title>
+            <ion-card-subtitle>Current Reading</ion-card-subtitle>
+          </ion-card-header>
+          <ion-card-content>
+            <h2 class="value">{{ soilMoisture }} %</h2>
+            Last data point: {{ date }}
+          </ion-card-content>
+        </ion-card>
+      </ion-col>
+      <!-- Light Intensity Card -->
+      <ion-col size="6" size-md="3">
+        <ion-card class="sensor-card">
+          <div class="card-image-wrapper">
+            <img alt="Light intensity sensor" src="assets/icon/light.png" />    
+          </div>
+          <ion-card-header>
+            <ion-card-title>Light Intensity</ion-card-title>
+            <ion-card-subtitle>Current Reading</ion-card-subtitle>
+          </ion-card-header>
+          <ion-card-content>
+            <h2 class="value">{{ lightIntensity }} %</h2>
+            Last data point: {{ date }}
+          </ion-card-content>
+        </ion-card>
+      </ion-col>
+    </ion-row>
+
+
+    <ion-row class="ion-justify-content-center ion-margin-top">
+  <!-- Plants Image Card -->
+  <ion-col size="12" size-md="6">
+    <ion-card class="plants-card">
+      <ion-card-header>
+        <ion-card-title>🌱 My Smart Greenhouse Plants</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div *ngIf="imageUrl">
+          <img [src]="imageUrl" alt="Smart greenhouse plants" />
+        </div>
+               Image taken at: {{ date_img }}
+      </ion-card-content>
+    </ion-card>
+  </ion-col>
+
+  <!-- Chart Card -->
+  <ion-col size="12" size-md="6">
+    <ion-card class="chart-card">
+      <ion-card-header>
+        <ion-card-title>📊 Last 24h Sensor Data</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <canvas id="sensorChart"></canvas>
+      </ion-card-content>
+    </ion-card>
+  </ion-col>
+</ion-row>
+
+
+    
+
+  </ion-grid>
+</ion-content>

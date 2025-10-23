@@ -1,0 +1,36 @@
+.chart-card, .images-card{
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  background-color: #ffffff;
+}
+
+.date-card {
+    border-left: 5px solid var(--ion-color-success);
+
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  background-color: #ffffff;
+  width: 100% !important;
+  height: 500px !important;
+}
+.chart-card canvas {
+  width: 100% !important;
+  height: 300px !important;
+}
+
+
+/* Image gallery */
+.images-card img {
+  width: 100%;            /* full width of column */
+  aspect-ratio: 32 / 18;   /* maintain 1280x720 proportion */
+  object-fit: cover;       /* crop if needed */
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+.image-nav {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

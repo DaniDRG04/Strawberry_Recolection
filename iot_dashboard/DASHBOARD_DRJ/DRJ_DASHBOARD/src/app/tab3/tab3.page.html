@@ -1,0 +1,68 @@
+<ion-header>
+  <ion-toolbar >
+    <ion-title>🚨 Error Logs</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+
+  <!-- Filter Section -->
+  <ion-card class="filter-card">
+    <ion-card-header>
+      <ion-card-title>Filter by Time Range</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-grid>
+        <ion-row class="ion-align-items-center ion-justify-content-around">
+          <ion-col size="12" size-md="5">
+            <ion-item>
+              <ion-label position="floating">Start Date</ion-label>
+              <ion-datetime 
+                presentation="date-time"
+                [(ngModel)]="startDate">
+              </ion-datetime>
+            </ion-item>
+          </ion-col>
+
+          <ion-col size="12" size-md="5">
+            <ion-item>
+              <ion-label position="floating">End Date</ion-label>
+              <ion-datetime 
+                presentation="date-time"
+                [(ngModel)]="endDate">
+              </ion-datetime>
+            </ion-item>
+          </ion-col>
+
+          <ion-col size="12" size-md="2" class="ion-text-center">
+            <ion-button expand="block" color="success" (click)="filterByDate()">Apply</ion-button>
+            <ion-button expand="block" fill="outline" color="medium" (click)="clearFilter()">Reset</ion-button>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Error List -->
+  <ion-grid>
+    <ion-row>
+      <ion-col size="12" *ngIf="filteredErrors.length === 0" class="ion-text-center ion-margin-top">
+        <ion-text color="medium">No errors found in the selected range.</ion-text>
+      </ion-col>
+
+      <ion-col size="12" size-md="6" *ngFor="let e of filteredErrors">
+<ion-card class="error-card" *ngFor="let e of filteredErrors">
+  <ion-card-header>
+    <ion-card-subtitle>🕒 {{ formatTimestamp(e.date_time) }}</ion-card-subtitle>
+    <ion-card-title color="danger">Error</ion-card-title>
+  </ion-card-header>
+  <ion-card-content>
+    <p>{{ e.error }}</p>
+  </ion-card-content>
+</ion-card>
+
+      </ion-col>
+    </ion-row>
+  </ion-grid>
+
+</ion-content>

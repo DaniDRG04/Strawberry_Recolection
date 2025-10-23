@@ -1,0 +1,10 @@
+{
+  "name": "DRJ_DASHBOARD",
+  "type": "angular",
+  "proxies": [
+    {
+      "path": "/api",
+      "proxyUrl": "http://10.25.15.228:3000"
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+<ion-header> 
+  <ion-toolbar>
+    <ion-title>📅 Data Viewer</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  <ion-grid>
+    <ion-row>
+      <!-- Left column: compact date pickers -->
+      <ion-col size="12" size-md="3">
+        <ion-card class="date-card">
+          <ion-card-header>
+            <ion-card-title>Start Date</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-datetime [(ngModel)]="startDate" presentation="date" size="small"></ion-datetime>
+          </ion-card-content>
+        </ion-card>
+
+        <ion-card class="date-card">
+          <ion-card-header>
+            <ion-card-title>End Date</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-datetime [(ngModel)]="endDate" presentation="date" size="small"></ion-datetime>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- 🔘 Reload button -->
+        <ion-button 
+          expand="block" 
+          class="ion-margin-top" 
+          (click)="applyDateFilter()" 
+          [disabled]="!startDate || !endDate">
+          Reload Data
+        </ion-button>
+      </ion-col>
+
+      <!-- Right column: graph and images -->
+      <ion-col size="12" size-md="9">
+        <!-- Graph -->
+        <ion-card class="chart-card">
+          <ion-card-header>
+            <ion-card-title>📊 Sensor Data</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <canvas id="sensorChart"></canvas>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Images with navigation -->
+        <ion-card class="images-card">
+          <div class="image-nav">
+            <ion-button size="small" (click)="prevPage()" [disabled]="currentPage === 0">
+              <ion-icon name="chevron-back-outline"></ion-icon>
+            </ion-button>
+
+            <ion-button size="small" (click)="nextPage()" [disabled]="(currentPage + 1) * pageSize >= images.length">
+              <ion-icon name="chevron-forward-outline"></ion-icon>
+            </ion-button>
+          </div>
+
+          <ion-grid>
+            <ion-row>
+              <ion-col size="6" size-md="3" *ngFor="let img of displayedImages">
+                <img [src]="img.url" alt="Greenhouse" />
+                <div class="image-timestamp">
+                  📅 {{ formatTimestamp(img.timestamp) }}
+                </div>
+              </ion-col>
+            </ion-row>
+          </ion-grid>
+        </ion-card>
+      </ion-col>
+    </ion-row>
+  </ion-grid>
+</ion-content>
