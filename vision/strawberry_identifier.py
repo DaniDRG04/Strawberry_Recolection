@@ -7,26 +7,25 @@ import pyrealsense2 as rs
 # Initialize RealSense pipeline
 pipeline = rs.pipeline()
 config = rs.config()
+
+# Enable color and depth streams
 config.enable_stream(rs.stream.color, 1280, 720, rs.format.bgr8, 30)
 config.enable_stream(rs.stream.depth, 1280, 720, rs.format.z16, 30)
 profile = pipeline.start(config)
 align = rs.align(rs.stream.color)
 
+# Get stream intrinsics
 depth_stream = profile.get_stream(rs.stream.depth).as_video_stream_profile()
 color_stream = profile.get_stream(rs.stream.color).as_video_stream_profile()
-
 depth_intr = depth_stream.get_intrinsics()
 color_intr = color_stream.get_intrinsics()
 
 depth_scale = profile.get_device().first_depth_sensor().get_depth_scale()
 
-# Load YOLOv8 modely
+# Load YOLOv8 model
 model = YOLO("C:\\Tec de MTY\\7mo Semestre\\Control\\Vision\\env\\CNN\\best.pt")
 min_area = 500
 max_area = 50000
-
-W = 1280
-H = 720
 
 width_strawberry = 0.0326 #m
 height_strawberry = 0.0342 #m
@@ -40,6 +39,7 @@ height_strawberry = 0.0342 #m
 # camera_matrix = np.array(calib_data['cameraMatrix'])
 # dist_coeffs = np.array(calib_data['dist'])
 
+# Construct camera matrix from RealSense intrinsics
 camera_matrix = np.array([[color_intr.fx,     0.0,     color_intr.ppx],
               [0.0,         color_intr.fy, color_intr.ppy],
               [0.0,         0.0,     1.0      ]], dtype=np.float64)
@@ -109,8 +109,8 @@ while True:
                 (-width_strawberry/2,  height_strawberry/2, 0.0)   # Bottom-left
             ])
 
-            # PnP usando Z conocido
-            rvec = np.zeros((3,1), dtype=np.float64)   # orientación inicial neutra
+            # PnP with Z guess
+            rvec = np.zeros((3,1), dtype=np.float64)   # neutral initial orientation
             tvec = np.array([[0],[0],[Z]], dtype=np.float64)
             success, rvec, tvec = cv.solvePnP(
                 objectPoints=object_points,
@@ -123,7 +123,6 @@ while True:
                 flags=cv.SOLVEPNP_ITERATIVE
             )
 
-            # Dibujo y salida
             color = (0,255,255) if success else (0,0,255)
             cv.rectangle(frame, (x1,y1), (x2,y2), color, 2)
             cv.putText(frame, f"{label}", (x1, y1 - 10), cv.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2)
