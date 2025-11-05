@@ -25,6 +25,7 @@ def robust_median_depth(depth_scale, depth_image, x1, y1, x2, y2):
     return np.median(roi) * depth_scale # Convert to meters
 
 def main():
+    T_4x4 = None
     # Initialize RealSense pipeline
     pipeline = rs.pipeline()
     config = rs.config()
@@ -56,9 +57,10 @@ def main():
                 [0.0,         color_intr.fy, color_intr.ppy],
                 [0.0,         0.0,     1.0      ]], dtype=np.float64)
 
-    dist_coeffs = np.zeros(5, dtype=np.float32)
+    #dist_coeffs = np.zeros(5, dtype=np.float32)
+    dist_coeffs = np.array(color_intr.coeffs[:5], dtype=np.float64)
 
-    for _ in range(40):
+    for _ in range(20):
         frames = pipeline.wait_for_frames()
         frames = align.process(frames)
 
@@ -128,17 +130,14 @@ def main():
             cv.putText(frame, f"{label}", (x1, y1 - 10), cv.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2)
 
             if success:
-                tvec[2,0] = Z + (width_strawberry/2) # Adjust depth to box center
+                tvec[2,0] = Z # Adjust depth to box center
                 T_4x4 = np.eye(4)
-                T_4x4[:3, :3], _ = cv.Rodrigues(rvec)
-                T_4x4[:3, 3] = tvec.reshape(3)
-
-    cv.imshow("Strawberry Detection", frame)
-    if cv.waitKey(1) & 0xFF == ord('q'):
-        pass
-
-    #cv.imwrite(img_path, frame)
-    cv.destroyAllWindows()
+                #T_4x4[:3, :3], _ = cv.Rodrigues(rvec)
+                T_4x4[:3, 3] = tvec.reshape(3)*1000  # Convert to mm
+                print("Pose (mm):")
+                print(T_4x4)
+                
+    pipeline.stop()
     return T_4x4
 
 if __name__ == "__main__":

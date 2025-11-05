@@ -49,7 +49,7 @@ camera_matrix = np.array([[color_intr.fx,     0.0,     color_intr.ppx],
               [0.0,         color_intr.fy, color_intr.ppy],
               [0.0,         0.0,     1.0      ]], dtype=np.float64)
 
-dist_coeffs = np.zeros(5, dtype=np.float32)
+dist_coeffs = np.array(color_intr.coeffs)
 
 def robust_median_depth(depth_image, x1, y1, x2, y2):
     """Compute the robust median depth in the specified ROI in meters."""
