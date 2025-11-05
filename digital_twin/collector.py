@@ -10,6 +10,8 @@ from strawberry_recognition import main
 RDK = robolink.Robolink()
 RDK.setRunMode(robolink.RUNMODE_RUN_ROBOT)  # Modo simulación
 import numpy as np
+import time
+
 
 # Seleccionar robot por nombre
 robot = RDK.Item('UR3e')
@@ -18,46 +20,23 @@ foto = RDK.Item('FOTO_FRAME')
 camara = RDK.Item('Frame 3')
 
 
-robot.setSpeed(speed_linear=800, speed_joints=80) # restaura velocidad normal
+robot.setSpeed(speed_linear=300, speed_joints=20) # restaura velocidad normal
 
 # ------------------------------------------------------
 # Definición inicial
 # ------------------------------------------------------
 
-Home = [90.000000, -90.000000, 90.000000, -90.000000, -90.000000, -0.000000]
 Pos_foto = [-1.864511, -24.320595, -27.297083, -128.192464, 91.444518, 299.996035]
-Pos_Approach_Fresa_out = [86.128271, 10.009225, -143.917990, 43.908765, 90.000000, 210.768710]
 Pos_Approach_Fresa_in = [86.128271, 23.320939, -151.459881, 38.138942, 90.000000, 210.768710]
-Pos_Approach_Caja = [42.874238, -72.243947, 39.183983, -56.940036, -90.000000, -47.125762]
-Pos_Caja = [42.874238, -74.452121, 102.776276, -118.324155, -90.000000, -47.125762]
+Pos_Approach_Caja =[60.152901, -39.811733, 7.133262, 117.955824, 90.295372, 183.570722]
+Pos_Caja = [60.091010, -48.955721, 41.526286, 92.706472, 90.290276, 183.509040]
 Pos_Mov_circular = [139.771499, -57.545059, 125.720491, -158.165584, 90.001738, -231.151499]
-#Pose Inicial
-print("→ POS_FOTO (Inspección)")
-robot.MoveJ(Pos_foto)
-
-
-# ------------------------------------------------------
-# Calcular Fresa_abajo (Pos_Fresa bajada 200 mm en Z)
-# ------------------------------------------------------
-
-#pose_fresa_respecto_camara = fresa.Pose()
-
-#pose_fresa_respecto_camara = main()  # o matriz obtenida por visión
-#pose_fresa_respecto_camara = np_to_pose(pose_fresa_respecto_camara)
-#print("Pose fresa respecto a cámara (mm):")
-#print(pose_fresa_respecto_camara)
-
-
 
 # ------------------------------------------------------
 # Secuencia de movimientos
 # ------------------------------------------------------
 
 print("Iniciando secuencia programada...")
-
-# 1. HOME: posición inicial segura
-#print("→ HOME")
-#robot.MoveJ(Home)
 
 # 2. POS_FOTO: observación del entorno
 print("→ POS_FOTO (Inspección)")
@@ -82,9 +61,13 @@ current_pose = robot.Pose()                    # robomath.Mat
 target_pose = robomath.Mat(current_pose)      # copia
 target_pose[0,3] = float(tvec[0])
 target_pose[1,3] = float(tvec[1])
+target_pose[2,3] = float(tvec[2])
 
 print("Moviendo solo en traslación a:", tvec)
 robot.MoveJ(target_pose)
+
+# 3. POS_APPROACH_FRESA: acercamiento seguro
+print("→ POS_APPROACH_FRESA (acercamiento)")
 
 matrix = main()  # o matriz obtenida por visión
 
@@ -106,58 +89,36 @@ print("Moviendo solo en traslación a:", tvec)
 
 robot.MoveJ(new_target_pose)
 
-# #robot.MoveJ(Fresa_abajo)
+# 4. POS_FRESA: ascenso suave hacia la fresa
+print("→ POS_FRESA (ascenso hacia la fresa)")
+pose_fresa = robot.Pose() # copia
+pose_fresa = robomath.Mat(pose_fresa)      # copia
+pose_fresa[1,3] = float(pose_fresa[1,3] - 100)  # Sube 100 mm
+robot.MoveJ(pose_fresa)
 
-# Fresa_abajo = robomath.Mat(matrix)  # Ajustar altura de agarre
-# #Fresa_abajo = Fresa_abajo * robomath.transl(0,-40,-200)  # Baja 200 mm
+#5. POS_POSTPICK: movimiento circular para evitar colisiones
 
-# # 5. POS_FRESA: simula el agarre (sube suavemente)
-# print("→ POS_FRESA (agarre de la fresa)")
-# robot.MoveL(Fresa_abajo*robomath.transl(0,0,50))
-# time.sleep(10)              # wait 2 seconds
+print("→ POS_POSTPICK (arranque de fresa)") 
+joints = robot.Joints()   # Convert to Python list
+print("Current joints:", joints)
 
-# # 6. FRESA ABAJO (RETORNO): descenso rápido para soltar
-# print("→ FRESA_ABAJO (retorno rápido)")
-# robot.setSpeed(400)  # velocidad alta temporal
-# robot.MoveL(Fresa_abajo)
+# Add +60 degrees to the first joint (index 0)
+joints[0] -= 60
+print("New joints:", joints)
 
-# #6.5. MOVIMENTO PARA ARRANCAR:
-# #print("→ MOVIMENTO PARA ARRANCAR")
-# #robot.setSpeed(400)  # velocidad alta temporal
-# #Joints = robot.Joints()
-# #Joints_memoria= Joints
-# #print(Joints)
-
-# #Joints[-1]=  -360
-# #robot.MoveJ(Joints)
-# #print(Joints)
-
-# #Joints[-1]=  360
-# #robot.MoveJ(Joints)
-# #print(Joints)
-
-# #robot.MoveJ(Joints_memoria)
-# robot.setSpeed(100)  # restaura velocidad normal
-
-# # 7. POS_APPROACH_FRESA: retirada segura
-# print("→ POS_APPROACH_FRESA (retirada)")
-# robot.MoveJ(Pos_Approach_Fresa_out)
-
-# # 8. POS_APPROACH_CAJA: moverse hacia el área de depósito
-# print("→ POS_APPROACH_CAJA")
-# robot.MoveJ(Pos_Approach_Caja)
-
-# # 9. POS_CAJA: colocar la fresa
-# print("→ POS_CAJA (liberación)")
-# robot.MoveL(Pos_Caja)
-
-# # 10. POS_APPROACH_CAJA: moverse hacia el área de depósito
-# print("→ POS_APPROACH_CAJA (retirada)")
-# robot.MoveL(Pos_Approach_Caja)
+# Move robot to the new joint configuration
+robot.MoveJ(joints)
 
 
-# # 11. POS_FOTO: regreso al punto de observación
-# print("→ POS_FOTO (fin del ciclo)")
-# robot.MoveJ(Pos_foto)
+#6. PLACE/DROP: movimiento hacia la caja
+print("→ PLACE/DROP (colocación de fresa)")
 
-# print("Secuencia finalizada correctamente.")
+robot.MoveJ(Pos_Approach_Caja)
+robot.MoveJ(Pos_Caja)
+
+#7. Regresar a foto
+print("→ POS_FOTO (regreso a inspección)")
+
+robot.MoveJ(Pos_foto)
+remove_frame = RDK.Item("temp_frame")
+remove_frame.Delete()
