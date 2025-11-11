@@ -91,7 +91,7 @@ while True:
         x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
         area = (x2 - x1) * (y2 - y1)
 
-        if conf > 0.60 and min_area < area < max_area and label in ["ripe", "unripe"]:
+        if conf > 0.73 and min_area < area < max_area and label in ["ripe", "unripe"]:
             Z = robust_median_depth(depth, x1, y1, x2, y2) # Meters
             print("Depth (m):", Z)
             if Z is None:

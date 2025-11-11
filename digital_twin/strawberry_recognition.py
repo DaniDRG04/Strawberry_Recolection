@@ -88,7 +88,7 @@ def main():
         x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
         area = (x2 - x1) * (y2 - y1)
 
-        if conf > 0.60 and min_area < area < max_area and label in ["ripe", "unripe"]:
+        if conf > 0.60 and min_area < area < max_area and label in ["ripe"]:
             Z = robust_median_depth(depth_scale, depth, x1, y1, x2, y2) # Meters
             print("Depth (m):", Z)
             if Z is None:
@@ -136,6 +136,9 @@ def main():
                 T_4x4[:3, 3] = tvec.reshape(3)*1000  # Convert to mm
                 print("Pose (mm):")
                 print(T_4x4)
+                cv.imshow("Strawberry Detection", frame)
+                cv.waitKey(0)
+                break
                 
     pipeline.stop()
     return T_4x4

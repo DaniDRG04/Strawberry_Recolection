@@ -5,12 +5,14 @@
 # Descripción: Simula el ciclo de inspección, toma y depósito de una fresa.
 # ------------------------------------------------------
 
+import sys
 from robodk import robolink, robomath
 from strawberry_recognition import main
 RDK = robolink.Robolink()
 RDK.setRunMode(robolink.RUNMODE_RUN_ROBOT)  # Modo simulación
 import numpy as np
 import time
+import arduino_comm
 
 
 # Seleccionar robot por nombre
@@ -19,8 +21,7 @@ fresa= RDK.Item('FRESA')
 foto = RDK.Item('FOTO_FRAME')
 camara = RDK.Item('Frame 3')
 
-
-robot.setSpeed(speed_linear=300, speed_joints=20) # restaura velocidad normal
+robot.setSpeed(speed_linear=500, speed_joints=30) # restaura velocidad normal
 
 # ------------------------------------------------------
 # Definición inicial
@@ -41,84 +42,112 @@ print("Iniciando secuencia programada...")
 # 2. POS_FOTO: observación del entorno
 print("→ POS_FOTO (Inspección)")
 robot.MoveJ(Pos_foto)
-robot.setPoseFrame(foto)   # Base frame for movements
 
 
-# 2.1 Centrar fresa
-print("→ CENTRAR_FRESA")
+while True:
+    robot.setPoseFrame(foto)   # Base frame for movements
+    # 2.1 Centrar fresa
+    print("→ CENTRAR_FRESA")
 
-# Pose de la fresa respecto a la cámara (matriz 4x4)
-matrix_center = main()
+    # Pose de la fresa respecto a la cámara (matriz 4x4)
+    matrix_center = main()
 
-# (opcional) igualar Z a cero si quieres
-matrix_center[2,3] = 0
+    if matrix_center is None:
+        print("No se detectó ninguna fresa.")
+        break
+    else:
+        print("Fresa detectada")
+        pass
 
-# extraer tvec
-tvec = matrix_center[0:3, 3]
+    # (opcional) igualar Z a cero si quieres
+    matrix_center[2,3] = 0
 
-# conservar la orientación actual del robot y solo cambiar la traslación
-current_pose = robot.Pose()                    # robomath.Mat
-target_pose = robomath.Mat(current_pose)      # copia
-target_pose[0,3] = float(tvec[0])
-target_pose[1,3] = float(tvec[1])
-target_pose[2,3] = float(tvec[2])
+    # extraer tvec
+    tvec = matrix_center[0:3, 3]
 
-print("Moviendo solo en traslación a:", tvec)
-robot.MoveJ(target_pose)
+    # conservar la orientación actual del robot y solo cambiar la traslación
+    current_pose = robot.Pose()                    # robomath.Mat
+    target_pose = robomath.Mat(current_pose)      # copia
+    target_pose[0,3] = float(tvec[0])
+    target_pose[1,3] = float(tvec[1])
+    target_pose[2,3] = float(tvec[2])
 
-# 3. POS_APPROACH_FRESA: acercamiento seguro
-print("→ POS_APPROACH_FRESA (acercamiento)")
+    print("Moviendo solo en traslación a:", tvec)
+    robot.MoveJ(target_pose)
 
-matrix = main()  # o matriz obtenida por visión
+    # 3. POS_APPROACH_FRESA: acercamiento seguro
+    print("→ POS_APPROACH_FRESA (acercamiento)")
 
-# Crear frame temporal igual que el frame 3 para moverse respecto a el
-new_frame = RDK.AddFrame("temp_frame", RDK.Item("UR3e"))
-new_frame.setPose(camara.Pose())
+    matrix = main()  # o matriz obtenida por visión
 
-new_frame.setParentStatic(foto)
+    # Crear frame temporal igual que el frame 3 para moverse respecto a el
+    new_frame = RDK.AddFrame("temp_frame", RDK.Item("UR3e"))
+    new_frame.setPose(camara.Pose())
 
-robot.MoveJ(Pos_Approach_Fresa_in)
+    new_frame.setParentStatic(foto)
 
-robot.setPoseFrame(new_frame)   # Base frame for movements
-new_pose = robot.Pose() # copia
-new_target_pose = robomath.Mat(new_pose)      # copia
-new_target_pose[0,3] = float(matrix[0,3])
-new_target_pose[1,3] = float(matrix[1,3]+200)
-new_target_pose[2,3] = float(matrix[2,3]) 
-print("Moviendo solo en traslación a:", tvec)
+    robot.MoveJ(Pos_Approach_Fresa_in)
 
-robot.MoveJ(new_target_pose)
+    robot.setPoseFrame(new_frame)   # Base frame for movements
+    new_pose = robot.Pose() # copia
+    new_target_pose = robomath.Mat(new_pose)      # copia
+    new_target_pose[0,3] = float(matrix[0,3])
+    new_target_pose[1,3] = float(matrix[1,3]+200)
+    new_target_pose[2,3] = float(matrix[2,3]) 
+    print("Moviendo solo en traslación a:", tvec)
 
-# 4. POS_FRESA: ascenso suave hacia la fresa
-print("→ POS_FRESA (ascenso hacia la fresa)")
-pose_fresa = robot.Pose() # copia
-pose_fresa = robomath.Mat(pose_fresa)      # copia
-pose_fresa[1,3] = float(pose_fresa[1,3] - 100)  # Sube 100 mm
-robot.MoveJ(pose_fresa)
+    robot.MoveJ(new_target_pose)
 
-#5. POS_POSTPICK: movimiento circular para evitar colisiones
+    # 4. POS_FRESA: ascenso suave hacia la fresa
+    print("→ POS_FRESA (ascenso hacia la fresa)")
+    pose_fresa = robot.Pose() # copia
+    pose_fresa = robomath.Mat(pose_fresa)      # copia
+    pose_fresa[1,3] = float(pose_fresa[1,3] - 100)  # Sube 100 mm
+    robot.MoveJ(pose_fresa)
 
-print("→ POS_POSTPICK (arranque de fresa)") 
-joints = robot.Joints()   # Convert to Python list
-print("Current joints:", joints)
+    # Connect to Arduino
+    arduino_comm.connect_arduino()
 
-# Add +60 degrees to the first joint (index 0)
-joints[0] -= 60
-print("New joints:", joints)
-
-# Move robot to the new joint configuration
-robot.MoveJ(joints)
+    # Open valve (send 1)
+    arduino_comm.send_one()
+    time.sleep(1)    # Esperar 1 segundo para asegurar la succión
+    # Wait until Arduino prints "Listo"
+    arduino_comm.wait_for_ready(timeout=120)
 
 
-#6. PLACE/DROP: movimiento hacia la caja
-print("→ PLACE/DROP (colocación de fresa)")
 
-robot.MoveJ(Pos_Approach_Caja)
-robot.MoveJ(Pos_Caja)
+    #5. POS_POSTPICK: movimiento circular para evitar colisiones
+    # pose_postpick = robot.Pose() # copia
+    # pose_postpick = robomath.Mat(pose_postpick)      # copia
+    # pose_postpick[1,3] = float(pose_postpick[1,3] + 100)  # Baja 100 mm
+    # robot.MoveJ(pose_postpick)
+    print("→ POS_POSTPICK (arranque de fresa)") 
+    joints = robot.Joints()   # Convert to Python list
+    print("Current joints:", joints)
 
-#7. Regresar a foto
-print("→ POS_FOTO (regreso a inspección)")
+    # Add +60 degrees to the first joint (index 0)
+    joints[0] -= 60
+    print("New joints:", joints)
 
-robot.MoveJ(Pos_foto)
-remove_frame = RDK.Item("temp_frame")
-remove_frame.Delete()
+    # Move robot to the new joint configuration
+    robot.MoveJ(joints)
+
+    #6. PLACE/DROP: movimiento hacia la caja
+    print("→ PLACE/DROP (colocación de fresa)")
+
+    robot.MoveJ(Pos_Approach_Caja)
+    robot.MoveJ(Pos_Caja)
+    # Close valve (send 0)
+    arduino_comm.send_zero()
+
+    time.sleep(3)    # Esperar 1 segundo para asegurar la suelta
+
+    #7. Regresar a foto
+    print("→ POS_FOTO (regreso a inspección)")
+
+    robot.MoveJ(Pos_foto)
+    remove_frame = RDK.Item("temp_frame")
+    remove_frame.Delete()
+    # Clean up
+    time.sleep(2)
+    arduino_comm.close_connection()
