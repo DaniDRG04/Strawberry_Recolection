@@ -23,10 +23,10 @@ def read_from_arduino():
                     if "Listo" in line:
                         is_listo.set()  # notify that Arduino is ready
         except serial.SerialException:
-            print("❌ Lost connection to Arduino.")
+            print("Lost connection to Arduino.")
             break
         except Exception as e:
-            print(f"⚠️ Error reading: {e}")
+            print(f"Error reading: {e}")
             break
 
 
@@ -35,7 +35,7 @@ def connect_arduino(port=ARDUINO_PORT, baud=BAUD_RATE):
     global ser
     ser = serial.Serial(port, baud, timeout=1)
     time.sleep(2)  # wait for Arduino reset
-    print(f"✅ Connected to {port} at {baud} baud.")
+    print(f"Connected to {port} at {baud} baud.")
 
     thread = threading.Thread(target=read_from_arduino, daemon=True)
     thread.start()
@@ -60,10 +60,10 @@ def wait_for_ready(timeout=None):
     Wait until Arduino sends 'Listo' twice.
     Waits 3 seconds before starting to listen.
     """
-    print("⏳ Waiting 3 seconds before reading for 'Listo'...")
+    print("Waiting 3 seconds before reading for 'Listo'...")
     time.sleep(3)
 
-    print("⏳ Waiting for 2 'Listo' signals from Arduino...")
+    print("Waiting for 2 'Listo' signals from Arduino...")
     listo_count = 0
     start_time = time.time()
 
@@ -77,13 +77,13 @@ def wait_for_ready(timeout=None):
 
         if is_listo.wait(timeout=remaining):
             listo_count += 1
-            print(f"✅ Received 'Listo' #{listo_count}")
+            print(f"Received 'Listo' #{listo_count}")
             is_listo.clear()  # reset event for next detection
             if listo_count >= 2:
-                print("✅ Arduino responded twice with 'Listo'")
+                print("Arduino responded twice with 'Listo'")
                 return True
         else:
-            print("⚠️ Timeout waiting for 'Listo'")
+            print("Timeout waiting for 'Listo'")
             return False
 
 
@@ -92,4 +92,4 @@ def close_connection():
     global ser
     if ser and ser.is_open:
         ser.close()
-        print("🔌 Serial connection closed.")
+        print("Serial connection closed.")

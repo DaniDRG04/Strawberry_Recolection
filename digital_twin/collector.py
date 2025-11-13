@@ -8,12 +8,11 @@
 import sys
 from robodk import robolink, robomath
 from strawberry_recognition import main
-RDK = robolink.Robolink()
-RDK.setRunMode(robolink.RUNMODE_RUN_ROBOT)  # Modo simulación
 import numpy as np
 import time
 import arduino_comm
-
+RDK = robolink.Robolink()
+RDK.setRunMode(robolink.RUNMODE_RUN_ROBOT)  # Modo simulación
 
 # Seleccionar robot por nombre
 robot = RDK.Item('UR3e')
@@ -53,7 +52,7 @@ while True:
     matrix_center = main()
 
     if matrix_center is None:
-        print("No se detectó ninguna fresa.")
+        print("No se detectó ninguna fresa madura.")
         break
     else:
         print("Fresa detectada")
@@ -114,8 +113,6 @@ while True:
     # Wait until Arduino prints "Listo"
     arduino_comm.wait_for_ready(timeout=120)
 
-
-
     #5. POS_POSTPICK: movimiento circular para evitar colisiones
     # pose_postpick = robot.Pose() # copia
     # pose_postpick = robomath.Mat(pose_postpick)      # copia
@@ -137,10 +134,13 @@ while True:
 
     robot.MoveJ(Pos_Approach_Caja)
     robot.MoveJ(Pos_Caja)
+    
     # Close valve (send 0)
     arduino_comm.send_zero()
 
     time.sleep(3)    # Esperar 1 segundo para asegurar la suelta
+
+    robot.MoveJ(Pos_Approach_Caja)
 
     #7. Regresar a foto
     print("→ POS_FOTO (regreso a inspección)")
