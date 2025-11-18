@@ -33,6 +33,7 @@ Pos_Approach_Caja =[60.152901, -39.811733, 7.133262, 117.955824, 90.295372, 183.
 Pos_Caja = [60.091010, -48.955721, 41.526286, 92.706472, 90.290276, 183.509040]
 Pos_Mov_circular = [139.771499, -57.545059, 125.720491, -158.165584, 90.001738, -231.151499]
 Pos_Home = [90.000000, -90.000000, 90.000000, -90.000000, -90.000000, 300.000000]
+Out_range = [10.093225, -15.959153, -59.246724, -108.326073, 66.462800, 300.714424]
 
 # ------------------------------------------------------
 # Secuencia de movimientos
@@ -77,17 +78,11 @@ while True:
 
     print("Moviendo solo en traslación a:", tvec)
 
-    while True:
-        try:
-            robot.MoveJ(target_pose)
-            break  # Salir del bucle si el movimiento fue exitoso
-        except Exception as e:
-            # Disminuir x and y en 5 mm
-            print(f"Error al mover el robot: {e}. Intentando ajustar posición...")
-            tvec[0] -= 5
-            tvec[1] -= 5
-            target_pose[0,3] = float(tvec[0])
-            target_pose[1,3] = float(tvec[1])
+    try:
+        robot.MoveJ(target_pose)
+    except Exception as e:
+        robot.MoveJ(Out_range)
+            
 
     # 3. POS_APPROACH_FRESA: acercamiento seguro
     print("→ POS_APPROACH_FRESA (acercamiento)")
@@ -116,7 +111,7 @@ while True:
     print("→ POS_FRESA (ascenso hacia la fresa)")
     pose_fresa = robot.Pose() # copia
     pose_fresa = robomath.Mat(pose_fresa)      # copia
-    pose_fresa[1,3] = float(pose_fresa[1,3] - 100)  # Sube 100 mm
+    pose_fresa[1,3] = float(pose_fresa[1,3] - 150)  # Sube 100 mm
     robot.MoveJ(pose_fresa)
 
     # Connect to Arduino
@@ -138,6 +133,13 @@ while True:
     print("→ POS_POSTPICK (arranque de fresa)") 
     joints = robot.Joints()   # Convert to Python list
     print("Current joints:", joints)
+
+    # Move -30 in z 
+    post_pick_pose = robot.Pose() # copia
+    post_pick_pose = robomath.Mat(post_pick_pose)      # copia
+    post_pick_pose[1,3] = float(post_pick_pose[1,3] + 50)
+    post_pick_pose[2,3] = float(post_pick_pose[2,3] - 100)
+    robot.MoveJ(post_pick_pose)
 
     # Add +60 degrees to the first joint (index 0)
     joints[0] -= 60
