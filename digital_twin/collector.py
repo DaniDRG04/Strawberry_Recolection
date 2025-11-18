@@ -1,18 +1,19 @@
 # ------------------------------------------------------
 # Secuencia programada UR3e - RoboDK
 # ------------------------------------------------------
-# Autor: [Joaquin Cisneros]
+# Autor: [Daniel De Regules & Joaquin Cisneros]
 # Descripción: Simula el ciclo de inspección, toma y depósito de una fresa.
 # ------------------------------------------------------
 
 import sys
 from robodk import robolink, robomath
 from strawberry_recognition import main
+RDK = robolink.Robolink()
+RDK.setRunMode(robolink.RUNMODE_RUN_ROBOT)  # Modo simulación
 import numpy as np
 import time
 import arduino_comm
-RDK = robolink.Robolink()
-RDK.setRunMode(robolink.RUNMODE_RUN_ROBOT)  # Modo simulación
+
 
 # Seleccionar robot por nombre
 robot = RDK.Item('UR3e')
@@ -20,7 +21,7 @@ fresa= RDK.Item('FRESA')
 foto = RDK.Item('FOTO_FRAME')
 camara = RDK.Item('Frame 3')
 
-robot.setSpeed(speed_linear=500, speed_joints=30) # restaura velocidad normal
+robot.setSpeed(speed_linear=600, speed_joints=40) # restaura velocidad normal
 
 # ------------------------------------------------------
 # Definición inicial
@@ -31,6 +32,7 @@ Pos_Approach_Fresa_in = [86.128271, 23.320939, -151.459881, 38.138942, 90.000000
 Pos_Approach_Caja =[60.152901, -39.811733, 7.133262, 117.955824, 90.295372, 183.570722]
 Pos_Caja = [60.091010, -48.955721, 41.526286, 92.706472, 90.290276, 183.509040]
 Pos_Mov_circular = [139.771499, -57.545059, 125.720491, -158.165584, 90.001738, -231.151499]
+Pos_Home = [90.000000, -90.000000, 90.000000, -90.000000, -90.000000, 300.000000]
 
 # ------------------------------------------------------
 # Secuencia de movimientos
@@ -53,6 +55,8 @@ while True:
 
     if matrix_center is None:
         print("No se detectó ninguna fresa madura.")
+        robot.MoveJ(Pos_Home)
+        print("Regresando a posición HOME.")
         break
     else:
         print("Fresa detectada")
@@ -72,7 +76,18 @@ while True:
     target_pose[2,3] = float(tvec[2])
 
     print("Moviendo solo en traslación a:", tvec)
-    robot.MoveJ(target_pose)
+
+    while True:
+        try:
+            robot.MoveJ(target_pose)
+            break  # Salir del bucle si el movimiento fue exitoso
+        except Exception as e:
+            # Disminuir x and y en 5 mm
+            print(f"Error al mover el robot: {e}. Intentando ajustar posición...")
+            tvec[0] -= 5
+            tvec[1] -= 5
+            target_pose[0,3] = float(tvec[0])
+            target_pose[1,3] = float(tvec[1])
 
     # 3. POS_APPROACH_FRESA: acercamiento seguro
     print("→ POS_APPROACH_FRESA (acercamiento)")
@@ -113,6 +128,8 @@ while True:
     # Wait until Arduino prints "Listo"
     arduino_comm.wait_for_ready(timeout=120)
 
+
+
     #5. POS_POSTPICK: movimiento circular para evitar colisiones
     # pose_postpick = robot.Pose() # copia
     # pose_postpick = robomath.Mat(pose_postpick)      # copia
@@ -134,12 +151,10 @@ while True:
 
     robot.MoveJ(Pos_Approach_Caja)
     robot.MoveJ(Pos_Caja)
-    
     # Close valve (send 0)
     arduino_comm.send_zero()
 
     time.sleep(3)    # Esperar 1 segundo para asegurar la suelta
-
     robot.MoveJ(Pos_Approach_Caja)
 
     #7. Regresar a foto
