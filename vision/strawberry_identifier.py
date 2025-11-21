@@ -35,15 +35,6 @@ max_area = 50000
 width_strawberry = 0.0326 #m
 height_strawberry = 0.0342 #m
 
-#img_path = "C:\\Tec de MTY\\7mo Semestre\\Control\\Vision\\env\\CNN\\test_output.jpg"
-
-# # Load camera calibration data
-# with open("C:\\Tec de MTY\\7mo Semestre\\Control\\Vision\\env\\NuevaCalibracion2.yaml") as f:
-#     calib_data = yaml.safe_load(f)
-
-# camera_matrix = np.array(calib_data['cameraMatrix'])
-# dist_coeffs = np.array(calib_data['dist'])
-
 # Construct camera matrix from RealSense intrinsics
 camera_matrix = np.array([[color_intr.fx,     0.0,     color_intr.ppx],
               [0.0,         color_intr.fy, color_intr.ppy],
@@ -86,7 +77,7 @@ while True:
 
     for box in results.boxes:
         cls_id = int(box.cls[0])
-        conf = box.conf[0]
+        conf = float(box.conf[0])  # <-- convert to float
         label = model.names[cls_id]
         x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
         area = (x2 - x1) * (y2 - y1)
@@ -97,7 +88,8 @@ while True:
             if Z is None:
                 print(conf, "area:", area)
                 cv.rectangle(frame, (x1, y1), (x2, y2), (255,0,0), 2)
-                cv.putText(frame, f"{label} no depth", (x1, y1 - 10), cv.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2)
+                conf_text = f"{label} no depth {conf*100:.1f}%"
+                cv.putText(frame, conf_text, (x1, y1 - 10), cv.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2)
                 continue
 
             image_points = np.array([
@@ -130,7 +122,8 @@ while True:
 
             color = (0,255,255) if success else (0,0,255)
             cv.rectangle(frame, (x1,y1), (x2,y2), color, 2)
-            cv.putText(frame, f"{label}", (x1, y1 - 10), cv.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2)
+            conf_text = f"{label} {conf*100:.1f}%"
+            cv.putText(frame, conf_text, (x1, y1 - 10), cv.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2)
 
             if success:
                 tvec[2,0] = Z + (width_strawberry/2) # Adjust depth to box center

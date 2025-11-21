@@ -24,7 +24,7 @@ def robust_median_depth(depth_scale, depth_image, x1, y1, x2, y2):
         return None
     return np.median(roi) * depth_scale # Convert to meters
 
-def main():
+def main(second_iteration = False):
     T_4x4 = None
     # Initialize RealSense pipeline
     pipeline = rs.pipeline()
@@ -81,69 +81,93 @@ def main():
     # Perform inference
     results = model(frame, verbose=False)[0]
 
+    # Prepare candidate list (distance to image center) if second_iteration requested
+    img_h, img_w = frame.shape[:2]
+    img_cx, img_cy = img_w / 2.0, img_h / 2.0
+
+    candidates = []
     for box in results.boxes:
         cls_id = int(box.cls[0])
-        conf = box.conf[0]
+        conf = float(box.conf[0])
         label = model.names[cls_id]
         x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
         area = (x2 - x1) * (y2 - y1)
 
         if conf > 0.60 and min_area < area < max_area and label in ["ripe"]:
-            Z = robust_median_depth(depth_scale, depth, x1, y1, x2, y2) # Meters
-            print("Depth (m):", Z)
-            if Z is None:
-                print(conf, "area:", area)
-                cv.rectangle(frame, (x1, y1), (x2, y2), (255,0,0), 2)
-                cv.putText(frame, f"{label} no depth", (x1, y1 - 10), cv.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2)
-                continue
+            bx_cx = (x1 + x2) / 2.0
+            bx_cy = (y1 + y2) / 2.0
+            dist_center = np.hypot(bx_cx - img_cx, bx_cy - img_cy)
+            candidates.append({
+                "box": box,
+                "x1": x1, "y1": y1, "x2": x2, "y2": y2,
+                "conf": conf, "label": label, "area": area,
+                "dist_center": dist_center
+            })
 
-            image_points = np.array([
-                (x1, y1),         # Top-left
-                (x2, y1),         # Top-right
-                (x2, y2),         # Bottom-right
-                (x1, y2)          # Bottom-left
-            ], dtype="double")
+    # If second_iteration requested, select the candidate closest to image center
+    if second_iteration and len(candidates) > 0:
+        candidates = [min(candidates, key=lambda c: c["dist_center"])]
 
-            object_points = np.array([
-                (-width_strawberry/2, -height_strawberry/2, 0.0),  # Top-left
-                ( width_strawberry/2, -height_strawberry/2, 0.0),  # Top-right
-                ( width_strawberry/2,  height_strawberry/2, 0.0),  # Bottom-right
-                (-width_strawberry/2,  height_strawberry/2, 0.0)   # Bottom-left
-            ])
+    # Process the selected candidates (if any)
+    for cand in candidates:
+        x1, y1, x2, y2 = cand["x1"], cand["y1"], cand["x2"], cand["y2"]
+        label = cand["label"]
+        conf = cand["conf"]
+        area = cand["area"]
 
-            # PnP with Z guess
-            rvec = np.zeros((3,1), dtype=np.float64)   # neutral initial orientation
-            tvec = np.array([[0],[0],[Z]], dtype=np.float64)
-            success, rvec, tvec = cv.solvePnP(
-                objectPoints=object_points,
-                imagePoints=image_points,
-                cameraMatrix=camera_matrix,
-                distCoeffs=dist_coeffs,
-                rvec=rvec,
-                tvec=tvec,
-                useExtrinsicGuess=True,              
-                flags=cv.SOLVEPNP_ITERATIVE
-            )
+        Z = robust_median_depth(depth_scale, depth, x1, y1, x2, y2) # Meters
+        print("Depth (m):", Z)
+        if Z is None:
+            print(conf, "area:", area)
+            cv.rectangle(frame, (x1, y1), (x2, y2), (255,0,0), 2)
+            cv.putText(frame, f"{label} no depth", (x1, y1 - 10), cv.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2)
+            continue
 
-            color = (0,255,255) if success else (0,0,255)
-            cv.rectangle(frame, (x1,y1), (x2,y2), color, 2)
-            cv.putText(frame, f"{label}", (x1, y1 - 10), cv.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2)
+        image_points = np.array([
+            (x1, y1),         # Top-left
+            (x2, y1),         # Top-right
+            (x2, y2),         # Bottom-right
+            (x1, y2)          # Bottom-left
+        ], dtype="double")
 
-            if success:
-                tvec[2,0] = Z # Adjust depth to box center
-                T_4x4 = np.eye(4)
-                #T_4x4[:3, :3], _ = cv.Rodrigues(rvec)
-                T_4x4[:3, 3] = tvec.reshape(3)*1000  # Convert to mm
-                print("Pose (mm):")
-                print(T_4x4)
-                cv.imshow("Strawberry Detection", frame)
-                cv.waitKey(0)
-                break
+        object_points = np.array([
+            (-width_strawberry/2, -height_strawberry/2, 0.0),  # Top-left
+            ( width_strawberry/2, -height_strawberry/2, 0.0),  # Top-right
+            ( width_strawberry/2,  height_strawberry/2, 0.0),  # Bottom-right
+            (-width_strawberry/2,  height_strawberry/2, 0.0)   # Bottom-left
+        ])
+
+        # PnP with Z guess
+        rvec = np.zeros((3,1), dtype=np.float64)   # neutral initial orientation
+        tvec = np.array([[0],[0],[Z]], dtype=np.float64)
+        success, rvec, tvec = cv.solvePnP(
+            objectPoints=object_points,
+            imagePoints=image_points,
+            cameraMatrix=camera_matrix,
+            distCoeffs=dist_coeffs,
+            rvec=rvec,
+            tvec=tvec,
+            useExtrinsicGuess=True,              
+            flags=cv.SOLVEPNP_ITERATIVE
+        )
+
+        color = (0,255,255) if success else (0,0,255)
+        cv.rectangle(frame, (x1,y1), (x2,y2), color, 2)
+        cv.putText(frame, f"{label}", (x1, y1 - 10), cv.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2)
+
+        if success:
+            tvec[2,0] = Z # Adjust depth to box center
+            T_4x4 = np.eye(4)
+            #T_4x4[:3, :3], _ = cv.Rodrigues(rvec)
+            T_4x4[:3, 3] = tvec.reshape(3)*1000  # Convert to mm
+            print("Pose (mm):")
+            print(T_4x4)
+            cv.imshow("Strawberry Detection", frame)
+            cv.waitKey(0)
+            break
                 
     pipeline.stop()
     return T_4x4
 
 if __name__ == "__main__":
     main()
-
-    
