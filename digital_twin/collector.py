@@ -60,6 +60,8 @@ while True:
         print("Strawberry detected, proceeding to pick.")
         pass
 
+    matrix_center[2,3] = 0
+
     tvec = matrix_center[0:3, 3]
 
     # Preserve the current orientation of the robot and only change the translation
