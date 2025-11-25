@@ -27,13 +27,12 @@ robot.setSpeed(speed_linear=700, speed_joints=50) # restore normal speed
 # Initial definition
 # ------------------------------------------------------
 
-Pos_foto = [-1.864511, -24.320595, -27.297083, -128.192464, 91.444518, 299.996035]
-Pos_Approach_Fresa_in = [86.128271, 23.320939, -151.459881, 38.138942, 90.000000, 210.768710]
-Pos_Approach_Caja =[60.152901, -39.811733, 7.133262, 117.955824, 90.295372, 183.570722]
-Pos_Caja = [60.091010, -48.955721, 41.526286, 92.706472, 90.290276, 183.509040]
-Pos_Mov_circular = [139.771499, -57.545059, 125.720491, -158.165584, 90.001738, -231.151499]
+Pos_foto = [-1.860000, -24.320000, -27.300000, -128.190000, 91.440000, 60.000000]
+Pos_Approach_Fresa_in = [86.120000, 23.320000, -151.450000, 38.130000, 90.000000, -30.000000]
+Pos_Approach_Caja =[60.150000, -39.810000, 7.130000, 117.950000, 90.290000, 210.000000]
+Pos_Caja = [60.091010, -48.955721, 41.526286, 92.706472, 90.290276, 210.000000]
 Pos_Home = [90.000000, -90.000000, 90.000000, -90.000000, -90.000000, 300.000000]
-Out_range = [10.093225, -15.959153, -59.246724, -108.326073, 66.462800, 300.714424]
+Out_range = [10.090000, -15.960000, -59.250000, -108.330000, 66.460000, 60.000000]
 
 # ------------------------------------------------------
 # Sequence of movements
@@ -60,8 +59,6 @@ while True:
     else:
         print("Strawberry detected, proceeding to pick.")
         pass
-    
-    matrix_center[2,3] = 0
 
     tvec = matrix_center[0:3, 3]
 
@@ -83,17 +80,24 @@ while True:
     # 3. POS_APPROACH_FRESA: Approach the strawberry
     print("→ POS_APPROACH_FRESA (approach)")
 
-    matrix = main(second_iteration=True)  # or matrix obtained by vision
+    matrix = main(second_iteration=True)
 
+    if matrix is None:
+        print("No ripe strawberry detected in second iteration.")
+        robot.MoveJ(Pos_foto)
+        continue
+    
     # Create temporary frame same as frame 3 to move relative to it
     new_frame = RDK.AddFrame("temp_frame", RDK.Item("UR3e"))
     new_frame.setPose(camara.Pose())
-
     new_frame.setParentStatic(foto)
 
+    # Move to approach position
     robot.MoveJ(Pos_Approach_Fresa_in)
 
+    # Set robot reference frame to the new temporary frame
     robot.setPoseFrame(new_frame) 
+
     new_pose = robot.Pose()
     new_target_pose = robomath.Mat(new_pose)     
     new_target_pose[0,3] = float(matrix[0,3])
@@ -113,7 +117,7 @@ while True:
     # Connect to Arduino
     arduino_comm.connect_arduino()
 
-    # Open valve (send 1)
+    # Open valve only if strawberry detected by Arduino (send 1)
     ready0 = False
     ready0 = arduino_comm.wait_for_fresa_si(timeout=7)
     if not ready0:
@@ -126,9 +130,10 @@ while True:
 
     elif ready0:
         arduino_comm.send_one()
-        print("Valve opened, starting suction.")
+        print("Valve opened.")
     
     time.sleep(1)
+
     # Wait until Arduino prints "Listo"
     ready = False
     ready=arduino_comm.wait_for_ready(timeout=7)
