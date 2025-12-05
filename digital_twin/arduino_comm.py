@@ -37,7 +37,6 @@ def read_from_arduino():
             print(f"Error reading: {e}")
             break
 
-
 def connect_arduino(port=ARDUINO_PORT, baud=BAUD_RATE):
     """Open serial connection and start background thread."""
     global ser
